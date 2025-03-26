@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-const API_URL = 'https://<your-backend-url>'; // Replace with your backend URL
+const API_URL = 'https://socketproject-backend.onrender.com/'; // Replace with your backend URL
 
 const sendMessageToAI = async (message) => {
    try {
