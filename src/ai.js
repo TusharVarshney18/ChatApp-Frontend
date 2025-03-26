@@ -1,5 +1,22 @@
 import React, { useEffect, useState } from 'react';
 
+const API_URL = 'https://<your-backend-url>'; // Replace with your backend URL
+
+const sendMessageToAI = async (message) => {
+   try {
+      const response = await fetch(`${API_URL}/api/ai`, {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ message }),
+      });
+      const data = await response.json();
+      return data.response;
+   } catch (error) {
+      console.error('Error communicating with AI:', error);
+      return 'Sorry, something went wrong.';
+   }
+};
+
 const AIChat = ({ socket, username }) => {
    const [currentMessage, setCurrentMessage] = useState('');
    const [messageList, setMessageList] = useState([]);
