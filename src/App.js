@@ -34,7 +34,7 @@ const App = () => {
   return (
     <div className="App h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center">
       {!showChat && !showAIChat ? (
-        <div className="joinchatcontainer bg-white shadow-2xl rounded-2xl p-10 w-96">
+        <div className="joinchatcontainer bg-white shadow-2xl rounded-2xl p-10 w-full max-w-md">
           <h3 className="text-4xl font-extrabold text-gray-800 mb-6 text-center">
             Welcome to Chat
           </h3>

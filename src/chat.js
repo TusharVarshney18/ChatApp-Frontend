@@ -16,8 +16,7 @@ const Chat = ({ socket, username, room }) => {
          };
 
          await socket.emit('send_message', messageData);
-         setMessageList((list) => [...list, messageData]);
-         setCurrentMessage('');
+         setCurrentMessage(''); // Clear the input field
          socket.emit('stop_typing', { room });
       }
    };
@@ -64,7 +63,7 @@ const Chat = ({ socket, username, room }) => {
    return (
       <div className="chat-window flex flex-col h-screen bg-white shadow-lg rounded-lg overflow-hidden">
          <div className="chat-header bg-blue-600 text-white py-4 px-6">
-            <h2 className="text-xl font-bold">Room: {room}</h2>
+            <h2 className="text-xl font-bold text-center sm:text-left">Room: {room}</h2>
          </div>
          <div className="chat-body flex-1 overflow-y-auto p-4 bg-gray-100">
             {messageList.map((messageContent, index) => (
@@ -73,7 +72,7 @@ const Chat = ({ socket, username, room }) => {
                   className={`flex ${username === messageContent.author ? 'justify-end' : 'justify-start'} mb-4`}
                >
                   <div
-                     className={`max-w-xs px-4 py-2 rounded-lg shadow ${username === messageContent.author ? 'bg-blue-500 text-white' : 'bg-gray-200 text-black'
+                     className={`max-w-full sm:max-w-xs px-4 py-2 rounded-lg shadow ${username === messageContent.author ? 'bg-blue-500 text-white' : 'bg-gray-200 text-black'
                         }`}
                   >
                      <p className="text-sm font-semibold">{messageContent.author}</p>
@@ -83,12 +82,12 @@ const Chat = ({ socket, username, room }) => {
                </div>
             ))}
             {typingUser && (
-               <div className="text-sm text-gray-500 italic">
+               <div className="text-sm text-gray-500 italic text-center sm:text-left">
                   {typingUser} is typing...
                </div>
             )}
          </div>
-         <div className="chat-footer bg-white py-4 px-6 flex items-center space-x-4">
+         <div className="chat-footer bg-white py-4 px-6 flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4">
             <input
                type="text"
                placeholder="Type your message..."
@@ -102,7 +101,7 @@ const Chat = ({ socket, username, room }) => {
             />
             <button
                onClick={sendMessage}
-               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition w-full sm:w-auto"
             >
                Send
             </button>
