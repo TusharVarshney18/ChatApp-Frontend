@@ -5,6 +5,8 @@ const Chat = ({ socket, username, room }) => {
    const [messageList, setMessageList] = useState([]);
    const [isTyping, setIsTyping] = useState(false);
    const [typingUser, setTypingUser] = useState('');
+   const [members, setMembers] = useState([]);
+   const [showMembers, setShowMembers] = useState(false);
 
    const sendMessage = async () => {
       if (currentMessage !== '') {
@@ -41,7 +43,18 @@ const Chat = ({ socket, username, room }) => {
       return () => clearTimeout(timeout);
    };
 
+   const leaveRoom = () => {
+      socket.emit('leave_room', room);
+      window.location.reload(); // Reload the page to reset the state
+   };
+
+   const fetchMembers = () => {
+      socket.emit('get_members', room);
+   };
+
    useEffect(() => {
+      socket.emit('join_room', { room, username }); // Send username when joining the room
+
       const handleReceiveMessage = (data) => {
          setMessageList((list) => [...list, data]);
       };
@@ -54,21 +67,44 @@ const Chat = ({ socket, username, room }) => {
          setTypingUser('');
       };
 
+      const handleMembersList = (membersList) => {
+         setMembers(membersList); // Update members list
+      };
+
       socket.on('receive_message', handleReceiveMessage);
       socket.on('typing', handleTyping);
       socket.on('stop_typing', handleStopTyping);
+      socket.on('members_list', handleMembersList);
 
       return () => {
          socket.off('receive_message', handleReceiveMessage);
          socket.off('typing', handleTyping);
          socket.off('stop_typing', handleStopTyping);
+         socket.off('members_list', handleMembersList);
       };
-   }, [socket]);
+   }, [socket, room, username]);
 
    return (
       <div className="chat-window flex flex-col h-screen bg-white shadow-lg rounded-lg overflow-hidden">
-         <div className="chat-header bg-blue-600 text-white py-4 px-6">
+         <div className="chat-header bg-blue-600 text-white py-4 px-6 flex justify-between items-center">
             <h2 className="text-xl font-bold text-center sm:text-left">Room: {room}</h2>
+            <div className="flex space-x-4">
+               <button
+                  onClick={() => {
+                     fetchMembers();
+                     setShowMembers(!showMembers);
+                  }}
+                  className="bg-white text-blue-600 px-4 py-2 rounded-lg hover:bg-gray-200 transition"
+               >
+                  Info
+               </button>
+               <button
+                  onClick={leaveRoom}
+                  className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+               >
+                  Leave Room
+               </button>
+            </div>
          </div>
          <div className="chat-body flex-1 overflow-y-auto p-4 bg-gray-100">
             {messageList.map((messageContent, index) => (
@@ -92,6 +128,16 @@ const Chat = ({ socket, username, room }) => {
                </div>
             )}
          </div>
+         {showMembers && (
+            <div className="bg-gray-200 p-4">
+               <h3 className="text-lg font-semibold">Members:</h3>
+               <ul className="list-disc list-inside">
+                  {members.map((member, index) => (
+                     <li key={index}>{member}</li>
+                  ))}
+               </ul>
+            </div>
+         )}
          <div className="chat-footer bg-white py-4 px-6 flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4">
             <input
                type="text"

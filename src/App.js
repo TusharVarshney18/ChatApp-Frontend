@@ -10,7 +10,12 @@ const App = () => {
   const [showChat, setShowChat] = useState(false);
   const [showAIChat, setShowAIChat] = useState(false);
 
-  const socket = React.useMemo(() => io.connect('https://socketproject-backend.onrender.com/'), []);
+  const socket = React.useMemo(() => {
+    const backendURL = process.env.NODE_ENV === 'production'
+      ? 'https://socketproject-backend.onrender.com/'
+      : 'http://localhost:3002/';
+    return io.connect(backendURL);
+  }, []);
 
   const joinRoom = () => {
     if (username !== '' && room !== '') {
