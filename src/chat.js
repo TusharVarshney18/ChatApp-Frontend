@@ -1,164 +1,301 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
+
+const TENOR_API_KEY = "YOUR_TENOR_API_KEY"; // Replace with your Tenor API key
+const TENOR_API_URL = "https://tenor.googleapis.com/v2/search"; // Tenor API search endpoint
 
 const Chat = ({ socket, username, room }) => {
-   const [currentMessage, setCurrentMessage] = useState('');
-   const [messageList, setMessageList] = useState([]);
-   const [isTyping, setIsTyping] = useState(false);
-   const [typingUser, setTypingUser] = useState('');
-   const [members, setMembers] = useState([]);
-   const [showMembers, setShowMembers] = useState(false);
+  const [currentMessage, setCurrentMessage] = useState("");
+  const [messageList, setMessageList] = useState([]);
+  const [isTyping, setIsTyping] = useState(false);
+  const [typingUser, setTypingUser] = useState("");
+  const [members, setMembers] = useState([]);
+  const [showMembers, setShowMembers] = useState(false);
+  const [showGifPicker, setShowGifPicker] = useState(false);
+  const [gifResults, setGifResults] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
-   const sendMessage = async () => {
-      if (currentMessage !== '') {
-         const messageData = {
-            room: room,
-            author: username,
-            message: currentMessage,
-            time: new Date().toLocaleTimeString('en-US', {
-               hour: '2-digit',
-               minute: '2-digit',
-               hour12: true,
-               timeZone: 'Asia/Kolkata' // Set timezone to IST
-            }),
-         };
+  const sendMessage = async () => {
+    if (!currentMessage.trim()) return;
 
-         await socket.emit('send_message', messageData);
-         setCurrentMessage(''); // Clear the input field
-         socket.emit('stop_typing', { room });
-      }
-   };
+    const messageData = {
+      room,
+      author: username,
+      message: currentMessage.trim(),
+      time: new Date().toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: "Asia/Kolkata",
+      }),
+    };
 
-   const handleTyping = () => {
-      if (!isTyping) {
-         setIsTyping(true);
-         socket.emit('typing', { room, author: username });
-      }
+    socket.emit("send_message", messageData);
+    setCurrentMessage("");
+    socket.emit("stop_typing", { room });
+  };
 
-      // Stop typing after a delay
-      const timeout = setTimeout(() => {
-         setIsTyping(false);
-         socket.emit('stop_typing', { room });
-      }, 2000);
+  const sendGif = (gifUrl) => {
+    const gifMessage = {
+      room,
+      author: username,
+      message: gifUrl,
+      time: new Date().toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: "Asia/Kolkata",
+      }),
+      isGif: true,
+    };
 
-      return () => clearTimeout(timeout);
-   };
+    socket.emit("send_message", gifMessage);
+    setShowGifPicker(false);
+  };
 
-   const leaveRoom = () => {
-      socket.emit('leave_room', room);
-      window.location.reload(); // Reload the page to reset the state
-   };
+  const fetchGifs = async (query) => {
+    try {
+      const response = await fetch(`${TENOR_API_URL}?key=${TENOR_API_KEY}&q=${encodeURIComponent(query || "trending")}&limit=10`);
+      const data = await response.json();
+      setGifResults(data.results || []);
+    } catch (error) {
+      console.error("Error fetching GIFs:", error);
+    }
+  };
 
-   const fetchMembers = () => {
-      socket.emit('get_members', room);
-   };
+  const handleTyping = () => {
+    if (!isTyping) {
+      setIsTyping(true);
+      socket.emit("typing", { room, author: username });
+    }
 
-   useEffect(() => {
-      socket.emit('join_room', { room, username }); // Send username when joining the room
+    const timeout = setTimeout(() => {
+      setIsTyping(false);
+      socket.emit("stop_typing", { room });
+    }, 2000);
 
-      const handleReceiveMessage = (data) => {
-         setMessageList((list) => [...list, data]);
-      };
+    return () => clearTimeout(timeout);
+  };
 
-      const handleTyping = (author) => {
-         setTypingUser(author);
-      };
+  const leaveRoom = () => {
+    socket.emit("leave_room", room);
+    window.location.reload();
+  };
 
-      const handleStopTyping = () => {
-         setTypingUser('');
-      };
+  const fetchMembers = () => {
+    socket.emit("get_members", room);
+  };
 
-      const handleMembersList = (membersList) => {
-         setMembers(membersList); // Update members list
-      };
+  useEffect(() => {
+    socket.emit("join_room", { room, username });
 
-      socket.on('receive_message', handleReceiveMessage);
-      socket.on('typing', handleTyping);
-      socket.on('stop_typing', handleStopTyping);
-      socket.on('members_list', handleMembersList);
+    const handleReceiveMessage = (data) => {
+      setMessageList((list) => [...list, data]);
+    };
 
-      return () => {
-         socket.off('receive_message', handleReceiveMessage);
-         socket.off('typing', handleTyping);
-         socket.off('stop_typing', handleStopTyping);
-         socket.off('members_list', handleMembersList);
-      };
-   }, [socket, room, username]);
+    const handleTypingEvent = ({ author }) => {
+      if (author !== username) setTypingUser(author);
+    };
 
-   return (
-      <div className="chat-window flex flex-col h-screen bg-white shadow-lg rounded-lg overflow-hidden">
-         <div className="chat-header bg-blue-600 text-white py-4 px-6 flex justify-between items-center">
-            <h2 className="text-xl font-bold text-center sm:text-left">Room: {room}</h2>
-            <div className="flex space-x-4">
-               <button
-                  onClick={() => {
-                     fetchMembers();
-                     setShowMembers(!showMembers);
-                  }}
-                  className="bg-white text-blue-600 px-4 py-2 rounded-lg hover:bg-gray-200 transition"
-               >
-                  Info
-               </button>
-               <button
-                  onClick={leaveRoom}
-                  className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
-               >
-                  Leave Room
-               </button>
-            </div>
-         </div>
-         <div className="chat-body flex-1 overflow-y-auto p-4 bg-gray-100">
-            {messageList.map((messageContent, index) => (
-               <div
-                  key={index}
-                  className={`flex ${username === messageContent.author ? 'justify-end' : 'justify-start'} mb-4`}
-               >
-                  <div
-                     className={`max-w-full sm:max-w-xs px-4 py-2 rounded-lg shadow ${username === messageContent.author ? 'bg-blue-500 text-white' : 'bg-gray-200 text-black'
-                        }`}
-                  >
-                     <p className="text-sm font-semibold">{messageContent.author}</p>
-                     <p className="text-sm">{messageContent.message}</p>
-                     <span className="text-xs text-gray-300 mt-1 block text-right">{messageContent.time}</span>
-                  </div>
-               </div>
-            ))}
-            {typingUser && (
-               <div className="text-sm text-gray-500 italic text-center sm:text-left">
-                  {typingUser} is typing...
-               </div>
-            )}
-         </div>
-         {showMembers && (
-            <div className="bg-gray-200 p-4">
-               <h3 className="text-lg font-semibold">Members:</h3>
-               <ul className="list-disc list-inside">
-                  {members.map((member, index) => (
-                     <li key={index}>{member}</li>
-                  ))}
-               </ul>
-            </div>
-         )}
-         <div className="chat-footer bg-white py-4 px-6 flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4">
-            <input
-               type="text"
-               placeholder="Type your message..."
-               className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-               value={currentMessage}
-               onChange={(e) => {
-                  setCurrentMessage(e.target.value);
-                  handleTyping();
-               }}
-               onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-            />
+    const handleStopTyping = () => {
+      setTypingUser("");
+    };
+
+    const handleMembersList = (membersList) => {
+      setMembers(membersList);
+    };
+
+    socket.on("receive_message", handleReceiveMessage);
+    socket.on("typing", handleTypingEvent);
+    socket.on("stop_typing", handleStopTyping);
+    socket.on("members_list", handleMembersList);
+
+    return () => {
+      socket.off("receive_message", handleReceiveMessage);
+      socket.off("typing", handleTypingEvent);
+      socket.off("stop_typing", handleStopTyping);
+      socket.off("members_list", handleMembersList);
+    };
+  }, [socket, room, username]);
+
+  return (
+    <div className="flex h-screen bg-slate-950 text-slate-100">
+      <div className="relative mx-auto my-4 flex w-full max-w-6xl flex-col rounded-3xl border border-white/10 bg-slate-900/70 backdrop-blur-2xl shadow-[0_30px_80px_rgba(15,23,42,0.95)] overflow-hidden">
+        {/* HEADER */}
+        <div className="flex items-center justify-between border-b border-slate-800/80 bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950 px-5 py-3 md:px-6">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Room</p>
+            <h2 className="text-lg md:text-xl font-semibold text-slate-50">{room}</h2>
+            <p className="mt-0.5 text-xs text-slate-400">
+              Signed in as <span className="font-medium text-slate-100">{username}</span>
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
             <button
-               onClick={sendMessage}
-               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition w-full sm:w-auto"
+              onClick={() => {
+                fetchMembers();
+                setShowMembers((v) => !v);
+              }}
+              className="hidden sm:inline-flex items-center gap-1 rounded-full border border-slate-700/80 bg-slate-900/70 px-3 py-1.5 text-xs font-medium text-slate-100 hover:bg-slate-800/80 transition"
             >
-               Send
+              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+              {members.length || 0} online
             </button>
-         </div>
+
+            <button
+              onClick={leaveRoom}
+              className="inline-flex items-center rounded-full bg-rose-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-rose-600 transition"
+            >
+              Leave
+            </button>
+          </div>
+        </div>
+
+        {/* BODY */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* MESSAGES */}
+          <div className="flex-1 flex flex-col">
+            <div className="flex-1 space-y-3 overflow-y-auto px-3 py-4 md:px-5 md:py-5 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950">
+              {messageList.map((m, i) => {
+                const isMe = m.author === username;
+                return (
+                  <div key={i} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                    <div
+                      className={`max-w-[78%] rounded-2xl px-3 py-2.5 text-sm shadow-md md:max-w-sm ${
+                        isMe ? "bg-indigo-500 text-white rounded-br-sm" : "bg-slate-800/90 text-slate-50 rounded-bl-sm"
+                      }`}
+                    >
+                      <div className="mb-1 flex items-center justify-between gap-3">
+                        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-200/80">{m.author}</span>
+                        <span className="text-[10px] text-slate-300/70">{m.time}</span>
+                      </div>
+
+                      {m.isGif ? (
+                        <img src={m.message} alt="GIF" className="mt-1 w-full max-h-56 rounded-xl object-cover" />
+                      ) : (
+                        <p className="text-[13px] leading-relaxed">{m.message}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {typingUser && <p className="mt-1 text-xs italic text-slate-400">{typingUser} is typing…</p>}
+            </div>
+
+            {/* FOOTER */}
+            <div className="border-t border-slate-800/80 bg-slate-900/95 px-3 py-3 md:px-5 md:py-4">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder="Type a message, /gifs, or /cmd…"
+                    className="w-full rounded-2xl border border-slate-700 bg-slate-950/70 px-4 py-2.5 text-sm text-slate-100 outline-none ring-0 transition placeholder:text-slate-500 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/60"
+                    value={currentMessage}
+                    onChange={(e) => {
+                      setCurrentMessage(e.target.value);
+                      handleTyping();
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        sendMessage();
+                      }
+                    }}
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 md:gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowGifPicker(true);
+                      fetchGifs("");
+                    }}
+                    className="inline-flex items-center justify-center rounded-2xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-xs font-medium text-slate-100 hover:bg-slate-800 transition"
+                  >
+                    GIF
+                  </button>
+                  <button
+                    type="button"
+                    onClick={sendMessage}
+                    className="inline-flex items-center justify-center rounded-2xl bg-indigo-500 px-4 py-2 text-xs md:text-sm font-semibold text-white shadow-md shadow-indigo-500/40 hover:bg-indigo-600 hover:shadow-indigo-500/60 transition"
+                  >
+                    Send
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* MEMBERS PANEL (desktop) */}
+          {showMembers && (
+            <aside className="hidden w-56 shrink-0 border-l border-slate-800/80 bg-slate-950/95 px-4 py-4 md:block">
+              <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 mb-3">Participants</h3>
+              <ul className="space-y-2 text-sm">
+                {members.map((m, idx) => (
+                  <li key={idx} className="flex items-center justify-between rounded-xl bg-slate-900/80 px-3 py-2">
+                    <span className="truncate">{m}</span>
+                    <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                  </li>
+                ))}
+              </ul>
+            </aside>
+          )}
+        </div>
+
+        {/* GIF MODAL */}
+        {showGifPicker && (
+          <div className="fixed inset-0 z-20 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm">
+            <div className="w-full max-w-xl rounded-3xl border border-slate-700 bg-slate-900 p-4 md:p-5 shadow-2xl">
+              <div className="flex items-center gap-2 mb-4">
+                <input
+                  type="text"
+                  placeholder="Search GIFs…"
+                  className="flex-1 rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/60"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      fetchGifs(searchQuery);
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => fetchGifs(searchQuery)}
+                  className="rounded-xl bg-indigo-500 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-600 transition"
+                >
+                  Search
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto">
+                {gifResults.map((gif) => (
+                  <img
+                    key={gif.id}
+                    src={gif.media_formats.gif.url}
+                    alt="GIF"
+                    className="cursor-pointer rounded-lg"
+                    onClick={() => sendGif(gif.media_formats.gif.url)}
+                  />
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowGifPicker(false)}
+                className="mt-4 w-full rounded-xl bg-rose-500 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-600 transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
       </div>
-   );
+    </div>
+  );
 };
 
 export default Chat;
