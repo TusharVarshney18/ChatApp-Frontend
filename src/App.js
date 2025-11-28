@@ -49,8 +49,9 @@ const App = () => {
                 Live • End‑to‑end encrypted
               </span>
               <h1 className="mt-6 text-4xl xl:text-5xl font-semibold tracking-tight text-white">
-                Tushar.Studio <br> Chat App</br>
+                Tushar.Studio <br /> Chat App
               </h1>
+
               <p className="mt-4 max-w-md text-sm text-slate-300">
                 High‑fidelity real‑time rooms, AI copilots, and studio‑grade collaboration. Tuned for founders, teams, and serious builders.
               </p>

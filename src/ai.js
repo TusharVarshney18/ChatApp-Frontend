@@ -58,7 +58,9 @@ const AIChat = ({ socket, username }) => {
         <div className="flex items-center justify-between border-b border-slate-800/80 bg-gradient-to-r from-emerald-500/20 via-slate-900 to-slate-950 px-5 py-3 md:px-6">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-emerald-300">AI Operator</p>
-            <h2 className="text-lg md:text-xl font-semibold text-slate-50">Atlas AI Console</h2>
+            <h2 className="text-lg md:text-xl font-semibold text-slate-50">
+              Tushar.Studio <br /> Chat App
+            </h2>
             <p className="mt-0.5 text-xs text-slate-400">
               Signed in as <span className="font-medium text-slate-100">{username}</span>
             </p>
