@@ -48,7 +48,9 @@ const App = () => {
               <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-200">
                 Live • End‑to‑end encrypted
               </span>
-              <h1 className="mt-6 text-4xl xl:text-5xl font-semibold tracking-tight text-white">Atlas Chat Studio</h1>
+              <h1 className="mt-6 text-4xl xl:text-5xl font-semibold tracking-tight text-white">
+                Tushar.Studio <br> Chat App</br>
+              </h1>
               <p className="mt-4 max-w-md text-sm text-slate-300">
                 High‑fidelity real‑time rooms, AI copilots, and studio‑grade collaboration. Tuned for founders, teams, and serious builders.
               </p>
